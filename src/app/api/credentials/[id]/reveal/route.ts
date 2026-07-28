@@ -34,6 +34,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    if (credential.isPasswordless || !credential.encryptedPassword || !credential.iv || !credential.authTag) {
+      return NextResponse.json({ error: 'No password available to reveal' }, { status: 400 });
+    }
+
     const password = decryptPassword(credential.encryptedPassword, credential.iv, credential.authTag);
     if (!password) return NextResponse.json({ error: 'Failed to decrypt password' }, { status: 500 });
 
