@@ -42,7 +42,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full bg-neutral-800 rounded-xl shadow-2xl border border-neutral-700 p-8">
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20 overflow-hidden bg-blue-600/10 border border-blue-500/20">
-            <img src="/logo.webp" alt="Logo" className="w-full h-full object-cover" />
+            <img src="/logo.webp" alt="Logo" className="w-full h-full object-contain p-1" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">IT Credential Vault</h1>
           <p className="text-neutral-400 mt-2 text-sm">Sign in to access secure credentials</p>
