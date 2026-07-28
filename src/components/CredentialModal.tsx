@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 'use client';
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, HelpCircle } from 'lucide-react';
 
 export default function CredentialModal({ isOpen, onClose, onSave, initialData, session }: any) {
   const [formData, setFormData] = useState({
@@ -40,11 +41,27 @@ export default function CredentialModal({ isOpen, onClose, onSave, initialData, 
             <input type="text" value={formData.account} onChange={e=>setFormData({...formData, account: e.target.value})} required className="w-full bg-neutral-950 border border-neutral-800 text-white rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-neutral-400 mb-1">Division</label>
+            <label className="flex items-center gap-1 text-xs font-medium text-neutral-400 mb-1 group relative">
+              Division
+              <div className="relative flex items-center">
+                <HelpCircle className="w-3 h-3 text-neutral-500 cursor-help" />
+                <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2.5 bg-neutral-800 text-neutral-300 text-[11px] rounded shadow-lg z-50 border border-neutral-700 font-normal leading-relaxed">
+                  Divisi mana yang memiliki/berhak menggunakan kredensial ini. (Cth: Marketing)
+                </div>
+              </div>
+            </label>
             <input type="text" value={formData.division} onChange={e=>setFormData({...formData, division: e.target.value})} required disabled={session?.role !== 'SUPER_ADMIN'} className="w-full bg-neutral-950 border border-neutral-800 text-white rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none disabled:opacity-50" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-neutral-400 mb-1">Role</label>
+            <label className="flex items-center gap-1 text-xs font-medium text-neutral-400 mb-1 group relative">
+              Role
+              <div className="relative flex items-center">
+                <HelpCircle className="w-3 h-3 text-neutral-500 cursor-help" />
+                <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2.5 bg-neutral-800 text-neutral-300 text-[11px] rounded shadow-lg z-50 border border-neutral-700 font-normal leading-relaxed">
+                  Tingkat akses dari akun/platform ini. (Cth: Editor, IAM ReadOnly)
+                </div>
+              </div>
+            </label>
             <input type="text" value={formData.role} onChange={e=>setFormData({...formData, role: e.target.value})} required className="w-full bg-neutral-950 border border-neutral-800 text-white rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
           </div>
           <div>

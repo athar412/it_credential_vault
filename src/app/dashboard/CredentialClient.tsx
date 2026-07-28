@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 import { useState, useEffect } from 'react';
-import { Eye, Plus, Copy, Trash2, Edit2, CheckCircle2 } from 'lucide-react';
+import { Eye, Plus, Copy, Trash2, Edit2, CheckCircle2, HelpCircle } from 'lucide-react';
 import PinModal from '@/components/PinModal';
 import CredentialModal from '@/components/CredentialModal';
 
@@ -8,11 +9,16 @@ export default function CredentialClient({ session }: any) {
   const [credentials, setCredentials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filterRole, setFilterRole] = useState('');
+  const [filterDivision, setFilterDivision] = useState('');
   
   const [isPinOpen, setIsPinOpen] = useState(false);
   const [pinTargetId, setPinTargetId] = useState<string | null>(null);
   const [pinLoading, setPinLoading] = useState(false);
   const [pinError, setPinError] = useState('');
+  const [pinAction, setPinAction] = useState<'reveal'|'save'|'delete'|null>(null);
+  const [pendingFormData, setPendingFormData] = useState<any>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   
   const [isCredOpen, setIsCredOpen] = useState(false);
   const [credEditData, setCredEditData] = useState<any>(null);
@@ -38,6 +44,7 @@ export default function CredentialClient({ session }: any) {
 
   const handleReveal = (id: string) => {
     setPinTargetId(id);
+    setPinAction('reveal');
     setPinError('');
     setIsPinOpen(true);
   };
@@ -46,25 +53,47 @@ export default function CredentialClient({ session }: any) {
     setPinLoading(true);
     setPinError('');
     try {
-      const res = await fetch(`/api/credentials/${pinTargetId}/reveal`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      
-      setRevealedPasswords(prev => ({ ...prev, [pinTargetId!]: data.password }));
-      setIsPinOpen(false);
-      
-      // Auto-hide after 15 seconds
-      setTimeout(() => {
-        setRevealedPasswords(prev => {
-          const next = { ...prev };
-          delete next[pinTargetId!];
-          return next;
+      if (pinAction === 'reveal') {
+        const res = await fetch(`/api/credentials/${pinTargetId}/reveal`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin })
         });
-      }, 15000);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        
+        setRevealedPasswords(prev => ({ ...prev, [pinTargetId!]: data.password }));
+        setIsPinOpen(false);
+        setTimeout(() => {
+          setRevealedPasswords(prev => {
+            const next = { ...prev };
+            delete next[pinTargetId!];
+            return next;
+          });
+        }, 15000);
+      } else if (pinAction === 'save') {
+        const res = await fetch(credEditData ? `/api/credentials/${credEditData.id}` : '/api/credentials', {
+          method: credEditData ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...pendingFormData, securityPin: pin })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        
+        setIsPinOpen(false);
+        fetchCredentials();
+      } else if (pinAction === 'delete') {
+        const res = await fetch(`/api/credentials/${pendingDeleteId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ securityPin: pin })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        
+        setIsPinOpen(false);
+        fetchCredentials();
+      }
     } catch (err: any) {
       setPinError(err.message);
     } finally {
@@ -78,54 +107,71 @@ export default function CredentialClient({ session }: any) {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (!confirm('Are you sure you want to delete this credential?')) return;
-    try {
-      await fetch(`/api/credentials/${id}`, { method: 'DELETE' });
-      fetchCredentials();
-    } catch (e) {
-      console.error(e);
-    }
+    setPendingDeleteId(id);
+    setPinAction('delete');
+    setPinError('');
+    setIsPinOpen(true);
   };
 
-  const handleSaveCredential = async (formData: any) => {
-    try {
-      if (credEditData) {
-        await fetch(`/api/credentials/${credEditData.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
-        });
-      } else {
-        await fetch('/api/credentials', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
-        });
-      }
-      setIsCredOpen(false);
-      fetchCredentials();
-    } catch (e) {
-      console.error(e);
-    }
+  const handleSaveCredential = (formData: any) => {
+    setPendingFormData(formData);
+    setIsCredOpen(false);
+    setPinAction('save');
+    setPinError('');
+    setIsPinOpen(true);
   };
 
-  const filtered = credentials.filter(c => 
-    c.platform.toLowerCase().includes(search.toLowerCase()) || 
-    c.account.toLowerCase().includes(search.toLowerCase()) ||
-    c.division.toLowerCase().includes(search.toLowerCase())
-  );
+  const roles = Array.from(new Set(credentials.map(c => c.role)));
+  const divisions = Array.from(new Set(credentials.map(c => c.division)));
+
+  const filtered = credentials.filter(c => {
+    const matchesSearch = c.platform.toLowerCase().includes(search.toLowerCase()) || 
+      c.account.toLowerCase().includes(search.toLowerCase()) ||
+      c.division.toLowerCase().includes(search.toLowerCase());
+    
+    const matchesRole = filterRole ? c.role === filterRole : true;
+    const matchesDivision = filterDivision ? c.division === filterDivision : true;
+
+    return matchesSearch && matchesRole && matchesDivision;
+  });
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <input 
-          type="text" 
-          placeholder="Search credentials..." 
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="bg-neutral-900 border border-neutral-800 text-white rounded-md px-4 py-2 w-full max-w-sm focus:outline-none focus:border-neutral-600"
-        />
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="flex flex-1 flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex items-center group">
+            <HelpCircle className="w-5 h-5 text-neutral-500 hover:text-neutral-300 cursor-help transition-colors" />
+            <div className="absolute left-0 top-full mt-2 hidden group-hover:block w-64 p-3 bg-neutral-800 text-neutral-300 text-xs rounded shadow-lg z-50 border border-neutral-700 font-normal leading-relaxed">
+              <strong>Credential Vault</strong><br/>
+              Halaman ini berisi daftar seluruh kredensial (akun/platform) yang tersimpan. Anda dapat mencari, melihat *password*, serta memfilter berdasarkan Role (jenis akun) dan Divisi yang memilikinya.
+            </div>
+          </div>
+          <input 
+            type="text" 
+            placeholder="Search credentials..." 
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="bg-neutral-900 border border-neutral-800 text-white rounded-md px-4 py-2 w-full sm:max-w-xs focus:outline-none focus:border-neutral-600"
+          />
+          <select
+            value={filterRole}
+            onChange={e => setFilterRole(e.target.value)}
+            className="bg-neutral-900 border border-neutral-800 text-neutral-300 rounded-md px-3 py-2 w-full sm:w-auto focus:outline-none focus:border-neutral-600 text-sm"
+          >
+            <option value="">All Roles</option>
+            {roles.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <select
+            value={filterDivision}
+            onChange={e => setFilterDivision(e.target.value)}
+            className="bg-neutral-900 border border-neutral-800 text-neutral-300 rounded-md px-3 py-2 w-full sm:w-auto focus:outline-none focus:border-neutral-600 text-sm"
+          >
+            <option value="">All Divisions</option>
+            {divisions.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
         <button 
           onClick={() => { setCredEditData(null); setIsCredOpen(true); }}
           className="bg-neutral-800 hover:bg-neutral-700 text-white px-4 py-2 rounded-md font-medium text-sm border border-neutral-700 flex items-center gap-2 transition-colors"
@@ -202,6 +248,15 @@ export default function CredentialClient({ session }: any) {
         onConfirm={submitPin}
         loading={pinLoading}
         error={pinError}
+        title={
+          pinAction === 'reveal' ? 'Reveal Password' : 
+          pinAction === 'delete' ? 'Delete Credential' : 'Save Credential'
+        }
+        message={
+          pinAction === 'reveal' ? 'Enter your security PIN to reveal this password.' :
+          pinAction === 'delete' ? 'Enter your security PIN to permanently delete this credential.' :
+          'Enter your security PIN to save these changes.'
+        }
       />
 
       <CredentialModal

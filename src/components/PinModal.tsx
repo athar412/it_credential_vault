@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 import { useState } from 'react';
 import { Lock, X } from 'lucide-react';
 
-export default function PinModal({ isOpen, onClose, onConfirm, loading, error }: any) {
+export default function PinModal({ isOpen, onClose, onConfirm, loading, error, title, message }: any) {
   const [pin, setPin] = useState('');
 
   if (!isOpen) return null;
@@ -22,9 +23,9 @@ export default function PinModal({ isOpen, onClose, onConfirm, loading, error }:
           <div className="w-12 h-12 bg-blue-600/20 rounded-full flex items-center justify-center mb-3">
             <Lock className="w-6 h-6 text-blue-500" />
           </div>
-          <h2 className="text-xl font-bold text-white">Security PIN Required</h2>
+          <h2 className="text-xl font-bold text-white">{title || 'Security PIN Required'}</h2>
           <p className="text-xs text-neutral-400 text-center mt-1">
-            Enter your security PIN to reveal this password.
+            {message || 'Enter your security PIN to reveal this password.'}
           </p>
         </div>
 

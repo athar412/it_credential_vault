@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { encryptPassword } from '@/lib/crypto';
+import bcrypt from 'bcryptjs';
 
 export async function GET() {
   const session = await getSession();
@@ -36,11 +37,16 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json();
-    const { platform, account, division, role, password } = data;
+    const { platform, account, division, role, password, securityPin } = data;
 
-    if (!platform || !account || !division || !role || !password) {
-      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
+    if (!platform || !account || !division || !role || !password || !securityPin) {
+      return NextResponse.json({ error: 'All fields including security PIN are required' }, { status: 400 });
     }
+
+    const user = await prisma.user.findUnique({ where: { id: session.id } });
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    const isPinValid = await bcrypt.compare(securityPin, user.pinHash);
+    if (!isPinValid) return NextResponse.json({ error: 'Invalid security PIN' }, { status: 403 });
 
     if (session.role !== 'SUPER_ADMIN' && session.division !== division) {
       return NextResponse.json({ error: 'Cannot create credential for another division' }, { status: 403 });

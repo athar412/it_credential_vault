@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { encryptPassword } from '@/lib/crypto';
+import bcrypt from 'bcryptjs';
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -10,7 +11,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
   try {
     const data = await request.json();
-    const { platform, account, division, role, password } = data;
+    const { platform, account, division, role, password, securityPin } = data;
+
+    if (!securityPin) return NextResponse.json({ error: 'Security PIN is required' }, { status: 400 });
+    const user = await prisma.user.findUnique({ where: { id: session.id } });
+    if (!user || !(await bcrypt.compare(securityPin, user.pinHash))) {
+      return NextResponse.json({ error: 'Invalid security PIN' }, { status: 403 });
+    }
 
     const existing = await prisma.credential.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -55,6 +62,15 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
+    const data = await request.json();
+    const { securityPin } = data;
+    if (!securityPin) return NextResponse.json({ error: 'Security PIN is required' }, { status: 400 });
+
+    const user = await prisma.user.findUnique({ where: { id: session.id } });
+    if (!user || !(await bcrypt.compare(securityPin, user.pinHash))) {
+      return NextResponse.json({ error: 'Invalid security PIN' }, { status: 403 });
+    }
+
     const existing = await prisma.credential.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
