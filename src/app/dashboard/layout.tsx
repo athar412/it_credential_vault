@@ -18,9 +18,7 @@ export default async function DashboardLayout({
     <div className="min-h-screen bg-neutral-950 text-neutral-100 font-sans">
       <header className="bg-neutral-900 border-b border-neutral-800 px-6 flex flex-col sm:flex-row justify-between sm:items-center sticky top-0 z-10 gap-4 sm:gap-0 pt-4 sm:py-4">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-600/10 p-2 rounded-lg border border-blue-500/20 flex items-center justify-center">
-            <img src="/logo.webp" alt="Logo" className="h-6 w-auto object-contain rounded" />
-          </div>
+          <img src="/logo.webp" alt="Logo" className="h-7 w-auto object-contain" />
           <div>
             <h1 className="text-lg font-semibold tracking-tight text-white leading-tight">IT Credential Vault</h1>
             <p className="text-xs text-neutral-400">
