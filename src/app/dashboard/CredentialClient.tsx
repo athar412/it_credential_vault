@@ -187,6 +187,7 @@ export default function CredentialClient({ session }: any) {
               <tr>
                 <th className="px-6 py-4">Platform</th>
                 <th className="px-6 py-4">Account</th>
+                <th className="px-6 py-4">Pengguna Akses</th>
                 <th className="px-6 py-4">Division</th>
                 <th className="px-6 py-4">Role</th>
                 <th className="px-6 py-4">Password</th>
@@ -195,19 +196,31 @@ export default function CredentialClient({ session }: any) {
             </thead>
             <tbody className="divide-y divide-neutral-800/50">
               {loading ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-neutral-500">Loading credentials...</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-neutral-500">Loading credentials...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-neutral-500">No credentials found</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-neutral-500">No credentials found</td></tr>
               ) : filtered.map(cred => (
                 <tr key={cred.id} className="hover:bg-neutral-800/30 transition-colors">
-                  <td className="px-6 py-4 font-medium text-white">{cred.platform}</td>
+                  <td className="px-6 py-4 font-medium text-white">
+                    <div className="flex items-center gap-2">
+                      {cred.platform}
+                      {cred.has2FA && (
+                        <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[10px] rounded border border-blue-500/30 uppercase font-bold tracking-wider" title={`2FA: ${cred.twoFAMethod}`}>2FA</span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-6 py-4">{cred.account}</td>
+                  <td className="px-6 py-4 text-neutral-400">{cred.accessUsers || '-'}</td>
                   <td className="px-6 py-4">
                     <span className="bg-neutral-800 px-2 py-1 rounded text-xs border border-neutral-700">{cred.division}</span>
                   </td>
                   <td className="px-6 py-4">{cred.role}</td>
                   <td className="px-6 py-4">
-                    {revealedPasswords[cred.id] ? (
+                    {cred.isPasswordless ? (
+                      <div className="text-xs text-neutral-400 italic">
+                        {cred.twoFAMethod ? cred.twoFAMethod : 'Login via Email/OTP'}
+                      </div>
+                    ) : revealedPasswords[cred.id] ? (
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-white bg-neutral-950 px-2 py-1 rounded border border-neutral-700 select-all tracking-wider">
                           {revealedPasswords[cred.id]}

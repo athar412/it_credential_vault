@@ -25,6 +25,10 @@ export async function GET() {
     account: c.account,
     division: c.division,
     role: c.role,
+    isPasswordless: c.isPasswordless,
+    has2FA: c.has2FA,
+    twoFAMethod: c.twoFAMethod,
+    accessUsers: c.accessUsers,
     updatedAt: c.updatedAt
   }));
 
@@ -37,10 +41,14 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json();
-    const { platform, account, division, role, password, securityPin } = data;
+    const { platform, account, division, role, password, securityPin, isPasswordless, has2FA, twoFAMethod, accessUsers } = data;
 
-    if (!platform || !account || !division || !role || !password || !securityPin) {
+    if (!platform || !account || !division || !role || !securityPin) {
       return NextResponse.json({ error: 'All fields including security PIN are required' }, { status: 400 });
+    }
+    
+    if (!isPasswordless && !password) {
+      return NextResponse.json({ error: 'Password is required' }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({ where: { id: session.id } });
@@ -52,7 +60,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Cannot create credential for another division' }, { status: 403 });
     }
 
-    const { encryptedPassword, iv, authTag } = encryptPassword(password);
+    let encryptedPassword = null;
+    let iv = null;
+    let authTag = null;
+    
+    if (!isPasswordless && password) {
+      const encrypted = encryptPassword(password);
+      encryptedPassword = encrypted.encryptedPassword;
+      iv = encrypted.iv;
+      authTag = encrypted.authTag;
+    }
 
     const credential = await prisma.credential.create({
       data: {
@@ -62,7 +79,11 @@ export async function POST(request: Request) {
         role,
         encryptedPassword,
         iv,
-        authTag
+        authTag,
+        isPasswordless: isPasswordless || false,
+        has2FA: has2FA || false,
+        twoFAMethod,
+        accessUsers
       }
     });
 

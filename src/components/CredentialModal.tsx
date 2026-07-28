@@ -5,14 +5,25 @@ import { X, HelpCircle } from 'lucide-react';
 
 export default function CredentialModal({ isOpen, onClose, onSave, initialData, session }: any) {
   const [formData, setFormData] = useState({
-    platform: '', account: '', division: session?.division || '', role: '', password: ''
+    platform: '', account: '', division: session?.division || '', role: '', password: '',
+    isPasswordless: false, has2FA: false, twoFAMethod: '', accessUsers: ''
   });
 
   useEffect(() => {
     if (initialData) {
-      setFormData({ ...initialData, password: '' });
+      setFormData({ 
+        ...initialData, 
+        password: '',
+        isPasswordless: initialData.isPasswordless || false,
+        has2FA: initialData.has2FA || false,
+        twoFAMethod: initialData.twoFAMethod || '',
+        accessUsers: initialData.accessUsers || ''
+      });
     } else {
-      setFormData({ platform: '', account: '', division: session?.role === 'SUPER_ADMIN' ? '' : session?.division, role: '', password: '' });
+      setFormData({ 
+        platform: '', account: '', division: session?.role === 'SUPER_ADMIN' ? '' : session?.division, role: '', password: '',
+        isPasswordless: false, has2FA: false, twoFAMethod: '', accessUsers: ''
+      });
     }
   }, [initialData, session, isOpen]);
 
@@ -65,8 +76,30 @@ export default function CredentialModal({ isOpen, onClose, onSave, initialData, 
             <input type="text" value={formData.role} onChange={e=>setFormData({...formData, role: e.target.value})} required className="w-full bg-neutral-950 border border-neutral-800 text-white rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-neutral-400 mb-1">{initialData ? 'New Password (Leave blank to keep)' : 'Password'}</label>
-            <input type="password" value={formData.password} onChange={e=>setFormData({...formData, password: e.target.value})} required={!initialData} className="w-full bg-neutral-950 border border-neutral-800 text-white rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+            <label className="block text-xs font-medium text-neutral-400 mb-1">{initialData && !formData.isPasswordless ? 'New Password (Leave blank to keep)' : 'Password'}</label>
+            <input type="password" value={formData.password} onChange={e=>setFormData({...formData, password: e.target.value})} required={!initialData && !formData.isPasswordless} disabled={formData.isPasswordless} className="w-full bg-neutral-950 border border-neutral-800 text-white rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" placeholder={formData.isPasswordless ? "Disabled for passwordless login" : ""} />
+          </div>
+
+          <div className="flex items-center gap-2 mt-2">
+            <input type="checkbox" id="isPasswordless" checked={formData.isPasswordless} onChange={e=>setFormData({...formData, isPasswordless: e.target.checked, password: ''})} className="w-4 h-4 bg-neutral-950 border-neutral-800 rounded text-blue-500 focus:ring-blue-500 focus:ring-offset-neutral-900" />
+            <label htmlFor="isPasswordless" className="text-xs font-medium text-neutral-300 cursor-pointer">Login Tanpa Password (Email Only / Magic Link)</label>
+          </div>
+
+          <div className="flex items-center gap-2 mt-2">
+            <input type="checkbox" id="has2FA" checked={formData.has2FA} onChange={e=>setFormData({...formData, has2FA: e.target.checked})} className="w-4 h-4 bg-neutral-950 border-neutral-800 rounded text-blue-500 focus:ring-blue-500 focus:ring-offset-neutral-900" />
+            <label htmlFor="has2FA" className="text-xs font-medium text-neutral-300 cursor-pointer">Membutuhkan 2FA / Verifikasi Ke-2</label>
+          </div>
+
+          {formData.has2FA && (
+            <div>
+              <label className="block text-xs font-medium text-neutral-400 mb-1">Metode 2FA</label>
+              <input type="text" value={formData.twoFAMethod} onChange={e=>setFormData({...formData, twoFAMethod: e.target.value})} placeholder="Contoh: OTP ke email pa albert" required className="w-full bg-neutral-950 border border-neutral-800 text-white rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-medium text-neutral-400 mb-1">Pengguna akses (Tulis Nama Staff)</label>
+            <input type="text" value={formData.accessUsers} onChange={e=>setFormData({...formData, accessUsers: e.target.value})} placeholder="Contoh: Budi, Andi" className="w-full bg-neutral-950 border border-neutral-800 text-white rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
           </div>
           <div className="pt-4 flex justify-end gap-3">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-neutral-300 hover:text-white transition-colors">Cancel</button>

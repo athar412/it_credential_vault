@@ -27,9 +27,13 @@ model Credential {
   account           String
   division          String
   role              String
-  encryptedPassword String
-  iv                String
-  authTag           String
+  encryptedPassword String?
+  iv                String?
+  authTag           String?
+  isPasswordless    Boolean  @default(false)
+  has2FA            Boolean  @default(false)
+  twoFAMethod       String?
+  accessUsers       String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }

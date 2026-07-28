@@ -11,7 +11,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
   try {
     const data = await request.json();
-    const { platform, account, division, role, password, securityPin } = data;
+    const { platform, account, division, role, password, securityPin, isPasswordless, has2FA, twoFAMethod, accessUsers } = data;
 
     if (!securityPin) return NextResponse.json({ error: 'Security PIN is required' }, { status: 400 });
     const user = await prisma.user.findUnique({ where: { id: session.id } });
@@ -26,9 +26,22 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const updateData: any = { platform, account, division, role };
+    const updateData: any = { 
+      platform, 
+      account, 
+      division, 
+      role,
+      ...(isPasswordless !== undefined && { isPasswordless }),
+      ...(has2FA !== undefined && { has2FA }),
+      ...(twoFAMethod !== undefined && { twoFAMethod }),
+      ...(accessUsers !== undefined && { accessUsers })
+    };
 
-    if (password) {
+    if (isPasswordless) {
+      updateData.encryptedPassword = null;
+      updateData.iv = null;
+      updateData.authTag = null;
+    } else if (password) {
       const { encryptedPassword, iv, authTag } = encryptPassword(password);
       updateData.encryptedPassword = encryptedPassword;
       updateData.iv = iv;
